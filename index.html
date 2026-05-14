@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>교사용 조회 | 디벗 대여 현황 · 송쌤과학</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Black+Han+Sans&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-1:#0f1729;
+    --bg-2:#1a2447;
+    --card:#ffffff;
+    --ink:#1a2238;
+    --ink-soft:#566388;
+    --line:#e6ebf5;
+    --teacher:#7c3aed;     /* 교사용 보라 */
+    --teacher-deep:#5b21b6;
+    --teacher-soft:#ede9fe;
+    --rent:#f59e0b;        /* 대여 = 주황 */
+    --rent-soft:#fef3c7;
+    --warn:#ef4444;
+    --ok:#16a34a;
+    --shadow:0 20px 60px -20px rgba(15,23,42,.35), 0 8px 20px -10px rgba(15,23,42,.18);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;font-family:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:var(--ink);}
+  body{
+    min-height:100dvh;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(124,58,237,.32), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(245,158,11,.20), transparent 60%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    padding:24px 16px 60px;
+    display:flex;justify-content:center;align-items:flex-start;
+  }
+  .wrap{width:100%;max-width:720px;display:flex;flex-direction:column;gap:18px;}
+  /* HEADER */
+  header.brand{color:#fff;text-align:center;padding:8px 0 4px;}
+  .school-tag{
+    display:inline-block;font-size:12px;letter-spacing:.2em;
+    color:#e9d5ff;background:rgba(255,255,255,.08);
+    padding:6px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.15);
+  }
+  h1{font-family:'Black Han Sans',sans-serif;font-size:32px;letter-spacing:-.5px;margin:14px 0 6px;color:#fff;}
+  h1 .accent{background:linear-gradient(90deg,#c4b5fd,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .subtitle{color:#bdb5d9;font-size:13px;margin:0;}
+  /* CARD */
+  .card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:24px 22px;border:1px solid rgba(255,255,255,.6);}
+  /* LOCK SCREEN */
+  .lock-screen{text-align:center;padding:20px 0 10px;}
+  .lock-ico{
+    width:72px;height:72px;border-radius:50%;
+    background:linear-gradient(135deg,var(--teacher),var(--teacher-deep));
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    margin:0 auto 18px;font-size:32px;
+    box-shadow:0 14px 30px -10px rgba(124,58,237,.5);
+  }
+  .lock-title{font-family:'Black Han Sans',sans-serif;font-size:22px;margin:0 0 6px;}
+  .lock-msg{color:var(--ink-soft);font-size:14px;margin:0 0 22px;}
+  .pw-input{
+    width:100%;max-width:280px;margin:0 auto;
+    padding:16px 20px;font-size:22px;font-family:'JetBrains Mono',monospace;font-weight:700;
+    text-align:center;letter-spacing:.6em;
+    background:#f7f9fc;border:2px solid var(--line);border-radius:14px;
+    color:var(--ink);outline:none;display:block;
+    transition:all .2s ease;
+  }
+  .pw-input:focus{border-color:var(--teacher);background:#fff;box-shadow:0 0 0 4px rgba(124,58,237,.12);}
+  .pw-input.shake{animation:shake .5s ease;border-color:var(--warn);}
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    20%,60%{transform:translateX(-8px);}
+    40%,80%{transform:translateX(8px);}
+  }
+  .pw-btn{
+    width:100%;max-width:280px;margin:14px auto 0;display:block;
+    padding:14px;font-size:15px;font-weight:700;color:#fff;border:none;
+    border-radius:14px;cursor:pointer;font-family:inherit;
+    background:linear-gradient(135deg,var(--teacher),var(--teacher-deep));
+    box-shadow:0 10px 24px -10px rgba(124,58,237,.6);
+    transition:transform .1s ease, opacity .2s;
+  }
+  .pw-btn:active{transform:translateY(1px);}
+  .pw-btn:disabled{opacity:.6;cursor:not-allowed;}
+  .pw-error{color:var(--warn);font-weight:700;font-size:13px;margin-top:12px;display:none;}
+  .pw-error.show{display:block;animation:fadeIn .25s;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  /* DASHBOARD */
+  .dash{display:none;}
+  .dash.show{display:block;}
+  .summary{
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;
+  }
+  .stat{
+    background:linear-gradient(135deg,#fef3c7,#fde68a);
+    border-radius:14px;padding:16px 12px;text-align:center;
+    border:1.5px solid #fcd34d;
+  }
+  .stat.tot{background:linear-gradient(135deg,var(--teacher-soft),#ddd6fe);border-color:#c4b5fd;}
+  .stat.today{background:linear-gradient(135deg,#dcfce7,#bbf7d0);border-color:#86efac;}
+  .stat .num{
+    font-family:'Black Han Sans',sans-serif;font-size:34px;line-height:1;
+    color:var(--ink);margin-bottom:4px;
+  }
+  .stat .lbl{font-size:11px;color:var(--ink-soft);font-weight:600;letter-spacing:.05em;}
+  /* TOOLBAR */
+  .toolbar{
+    display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;
+  }
+  .search-box{
+    flex:1;min-width:160px;
+    padding:11px 14px;font-size:14px;font-family:inherit;
+    background:#f7f9fc;border:1.5px solid var(--line);border-radius:10px;
+    outline:none;transition:border-color .15s;
+  }
+  .search-box:focus{border-color:var(--teacher);background:#fff;}
+  .filter-chip{
+    padding:9px 14px;font-size:13px;font-weight:600;font-family:inherit;
+    background:#f7f9fc;border:1.5px solid var(--line);border-radius:10px;
+    color:var(--ink-soft);cursor:pointer;transition:all .15s;
+  }
+  .filter-chip.active{background:var(--teacher);color:#fff;border-color:var(--teacher);}
+  .icon-btn{
+    padding:9px 12px;font-size:13px;font-weight:600;font-family:inherit;
+    background:#fff;border:1.5px solid var(--line);border-radius:10px;
+    color:var(--ink);cursor:pointer;transition:all .15s;
+    display:inline-flex;align-items:center;gap:5px;
+  }
+  .icon-btn:hover{border-color:var(--teacher);color:var(--teacher);}
+  /* LIST */
+  .list-wrap{
+    max-height:480px;overflow-y:auto;border-radius:12px;
+    border:1px solid var(--line);background:#fafbff;
+  }
+  .row{
+    display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;
+    padding:14px 16px;border-bottom:1px solid var(--line);
+    transition:background .15s;
+  }
+  .row:last-child{border-bottom:none;}
+  .row:hover{background:#f0eaff;}
+  .row.over{background:#fff5f5;}
+  .row.over:hover{background:#ffe9e9;}
+  .row-id{
+    font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;
+    color:var(--teacher-deep);background:var(--teacher-soft);
+    padding:6px 10px;border-radius:8px;min-width:60px;text-align:center;
+  }
+  .row.over .row-id{background:#fee2e2;color:#b91c1c;}
+  .row-info{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .row-name{font-weight:700;font-size:15px;color:var(--ink);}
+  .row-class{font-size:12px;color:var(--ink-soft);}
+  .row-date{
+    font-size:12px;color:var(--ink-soft);text-align:right;font-family:'JetBrains Mono',monospace;
+  }
+  .row-date b{display:block;color:var(--ink);font-family:inherit;}
+  .row .badge{
+    display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;
+    border-radius:6px;background:var(--rent);color:#fff;margin-left:4px;
+  }
+  /* EMPTY */
+  .empty{
+    text-align:center;padding:50px 20px;color:var(--ink-soft);
+  }
+  .empty .big{font-size:48px;margin-bottom:10px;}
+  .empty .title{font-weight:700;color:var(--ink);font-size:16px;margin-bottom:4px;}
+  /* LOADING */
+  .loading{text-align:center;padding:40px;color:var(--ink-soft);}
+  .spin{display:inline-block;width:24px;height:24px;border:3px solid #c4b5fd;border-top-color:var(--teacher);border-radius:50%;animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  /* LOGOUT */
+  .top-bar{
+    display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;
+  }
+  .top-bar h2{font-family:'Black Han Sans',sans-serif;font-size:20px;margin:0;}
+  .logout-btn{
+    padding:8px 14px;font-size:12px;font-weight:600;font-family:inherit;
+    background:#fff;border:1.5px solid var(--line);border-radius:10px;
+    color:var(--ink-soft);cursor:pointer;
+  }
+  .logout-btn:hover{border-color:var(--warn);color:var(--warn);}
+  /* TOAST */
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(80px);background:#1a2238;color:#fff;padding:14px 22px;border-radius:14px;font-size:14px;font-weight:600;box-shadow:0 14px 30px -10px rgba(0,0,0,.5);transition:transform .35s cubic-bezier(.2,.7,.3,1.2), opacity .25s;opacity:0;z-index:99;pointer-events:none;max-width:90%;text-align:center;}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+  .toast.ok{background:linear-gradient(135deg,#16a34a,#0d7a3a);}
+  .toast.err{background:linear-gradient(135deg,#ef4444,#b91c1c);}
+  /* FOOTER */
+  footer{text-align:center;color:#8294b8;font-size:12px;padding:6px 0 0;}
+  footer .copy{margin-top:4px;opacity:.7;font-family:'JetBrains Mono',monospace;font-size:11px;}
+  footer a{color:#bdb5d9;text-decoration:none;}
+  @media (max-width:520px){
+    h1{font-size:26px;}
+    .summary{grid-template-columns:1fr 1fr;}
+    .summary .stat:first-child{grid-column:span 2;}
+    .row-date{font-size:11px;}
+    .row-date b{font-size:12px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="brand">
+    <span class="school-tag">AJU MIDDLE SCHOOL · TEACHER</span>
+    <h1>디벗 <span class="accent">대여 현황</span></h1>
+    <p class="subtitle">교사 전용 조회 페이지입니다</p>
+  </header>
+
+  <!-- 🔒 잠금 화면 -->
+  <div class="card" id="lockScreen">
+    <div class="lock-screen">
+      <div class="lock-ico">🔐</div>
+      <p class="lock-title">교사 인증</p>
+      <p class="lock-msg">비밀번호 4자리를 입력해 주세요</p>
+      <input type="password" id="pwInput" class="pw-input" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
+      <button type="button" class="pw-btn" id="pwBtn">조회 시작</button>
+      <p class="pw-error" id="pwError">비밀번호가 일치하지 않습니다</p>
+    </div>
+  </div>
+
+  <!-- 📊 대시보드 -->
+  <div class="card dash" id="dashboard">
+
+    <div class="top-bar">
+      <h2>📋 현재 대여 중</h2>
+      <button type="button" class="logout-btn" id="logoutBtn">잠금</button>
+    </div>
+
+    <div class="summary" id="summary">
+      <div class="stat tot">
+        <div class="num" id="statTotal">-</div>
+        <div class="lbl">전체 대여중</div>
+      </div>
+      <div class="stat" id="statOverdueBox">
+        <div class="num" id="statOverdue">-</div>
+        <div class="lbl">3일 이상 미반납</div>
+      </div>
+      <div class="stat today">
+        <div class="num" id="statToday">-</div>
+        <div class="lbl">오늘 대여</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" class="search-box" id="searchBox" placeholder="🔍 이름·학번 검색">
+      <button type="button" class="filter-chip active" data-filter="all">전체</button>
+      <button type="button" class="filter-chip" data-filter="1">1학년</button>
+      <button type="button" class="filter-chip" data-filter="2">2학년</button>
+      <button type="button" class="filter-chip" data-filter="3">3학년</button>
+      <button type="button" class="icon-btn" id="refreshBtn">🔄 새로고침</button>
+      <button type="button" class="icon-btn" id="csvBtn">⬇ CSV</button>
+    </div>
+
+    <div class="list-wrap" id="listWrap">
+      <div class="loading">
+        <div class="spin"></div>
+        <p>불러오는 중...</p>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <a href="https://www.youtube.com/@songssamscience" target="_blank">YouTube</a> ·
+    <a href="https://www.instagram.com/songssam_science/" target="_blank">Instagram</a>
+    <div class="copy">© 송쌤과학 · TEACHER VIEW</div>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ⚙️ 설정 */
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyAw8iRM7NEqY8Z1pEramnefZudyKv6qGp4FWfRlhEUsQE9M4A3y_KPaKv5kD1nBujxwg/exec";
+const PASSWORD = "6647";
+const SESSION_KEY = "dibot_teacher_auth";
+const SESSION_DURATION = 30 * 60 * 1000; // 30분 자동 잠금
+
+/* DOM */
+const $ = s => document.querySelector(s);
+const lockScreen = $('#lockScreen');
+const dashboard = $('#dashboard');
+const pwInput = $('#pwInput');
+const pwBtn = $('#pwBtn');
+const pwError = $('#pwError');
+const logoutBtn = $('#logoutBtn');
+const searchBox = $('#searchBox');
+const listWrap = $('#listWrap');
+const refreshBtn = $('#refreshBtn');
+const csvBtn = $('#csvBtn');
+const toast = $('#toast');
+
+let allRented = [];        // 전체 대여 중 학생
+let currentFilter = 'all'; // 학년 필터
+let searchKeyword = '';
+
+/* 비밀번호만 입력 가능하게 (숫자 4자리) */
+pwInput.addEventListener('input', e=>{
+  e.target.value = e.target.value.replace(/[^0-9]/g,'').slice(0,4);
+  pwError.classList.remove('show');
+  pwInput.classList.remove('shake');
+});
+pwInput.addEventListener('keydown', e=>{
+  if(e.key === 'Enter') pwBtn.click();
+});
+
+/* 로그인 시도 */
+pwBtn.addEventListener('click', ()=>{
+  if(pwInput.value !== PASSWORD){
+    pwInput.classList.add('shake');
+    pwError.classList.add('show');
+    pwInput.value = '';
+    if(navigator.vibrate) navigator.vibrate([60,30,60]);
+    setTimeout(()=> pwInput.focus(), 100);
+    return;
+  }
+  // 인증 성공 - 세션 저장 (30분 유효)
+  sessionStorage.setItem(SESSION_KEY, String(Date.now()));
+  unlock();
+});
+
+/* 잠금 해제 */
+function unlock(){
+  lockScreen.style.display = 'none';
+  dashboard.classList.add('show');
+  fetchRented();
+}
+
+/* 잠금 */
+logoutBtn.addEventListener('click', ()=>{
+  sessionStorage.removeItem(SESSION_KEY);
+  dashboard.classList.remove('show');
+  lockScreen.style.display = '';
+  pwInput.value = '';
+  pwInput.focus();
+  allRented = [];
+});
+
+/* 세션 체크: 30분 이내 인증된 적 있으면 자동 잠금 해제 */
+(function checkSession(){
+  const t = sessionStorage.getItem(SESSION_KEY);
+  if(t && (Date.now() - Number(t)) < SESSION_DURATION){
+    unlock();
+  } else {
+    sessionStorage.removeItem(SESSION_KEY);
+    pwInput.focus();
+  }
+})();
+
+/* 대여 목록 조회 */
+async function fetchRented(){
+  listWrap.innerHTML = `<div class="loading"><div class="spin"></div><p>불러오는 중...</p></div>`;
+  try{
+    const url = `${GAS_URL}?action=listRented&password=${encodeURIComponent(PASSWORD)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.status !== 'ok'){ throw new Error(data.message); }
+    allRented = data.list || [];
+    renderSummary();
+    renderList();
+  } catch(err){
+    listWrap.innerHTML = `<div class="empty">
+      <div class="big">⚠️</div>
+      <div class="title">조회 실패</div>
+      <div>${err.message || '서버 연결을 확인해 주세요'}</div>
+    </div>`;
+    showToast('조회 실패. 다시 시도해 주세요', 'err');
+  }
+}
+
+/* 요약 통계 렌더링 */
+function renderSummary(){
+  const total = allRented.length;
+  const today = new Date().toISOString().slice(0,10);
+  const todayCount = allRented.filter(r => r.date === today).length;
+  // 3일 이상 미반납
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  const overdue = allRented.filter(r=>{
+    const d = new Date(r.date);
+    return d < threeDaysAgo;
+  }).length;
+  $('#statTotal').textContent = total;
+  $('#statToday').textContent = todayCount;
+  $('#statOverdue').textContent = overdue;
+  // 미반납이 있으면 강조
+  const box = $('#statOverdueBox');
+  if(overdue > 0){
+    box.style.background = 'linear-gradient(135deg,#fee2e2,#fecaca)';
+    box.style.borderColor = '#f87171';
+  } else {
+    box.style.background = '';
+    box.style.borderColor = '';
+  }
+}
+
+/* 학생 목록 렌더링 */
+function renderList(){
+  let filtered = allRented;
+  // 학년 필터
+  if(currentFilter !== 'all'){
+    filtered = filtered.filter(r => String(r.studentId).startsWith(currentFilter));
+  }
+  // 검색 필터
+  if(searchKeyword){
+    const kw = searchKeyword.toLowerCase();
+    filtered = filtered.filter(r => 
+      r.name.toLowerCase().includes(kw) || 
+      String(r.studentId).includes(kw)
+    );
+  }
+  if(filtered.length === 0){
+    listWrap.innerHTML = `<div class="empty">
+      <div class="big">🎉</div>
+      <div class="title">현재 대여 중인 학생이 없습니다</div>
+      <div>모두 정상 반납되었어요</div>
+    </div>`;
+    return;
+  }
+  // 3일 이상 경과한 항목 강조
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  
+  const today = new Date();
+  const html = filtered.map(r=>{
+    const d = new Date(r.date);
+    const daysDiff = Math.floor((today - d) / (1000*60*60*24));
+    const overdueClass = d < threeDaysAgo ? ' over' : '';
+    const overdueBadge = daysDiff >= 3 ? `<span class="badge">${daysDiff}일 경과</span>` : '';
+    // 학번 파싱: 5자리 → 학년/반/번호
+    const sid = String(r.studentId);
+    const grade = sid[0];
+    const cls = parseInt(sid.slice(1,3));
+    const num = parseInt(sid.slice(3,5));
+    return `
+      <div class="row${overdueClass}">
+        <div class="row-id">${sid}</div>
+        <div class="row-info">
+          <div class="row-name">${escapeHtml(r.name)}${overdueBadge}</div>
+          <div class="row-class">${grade}학년 ${cls}반 ${num}번</div>
+        </div>
+        <div class="row-date">
+          대여일<b>${r.date}</b>
+        </div>
+      </div>`;
+  }).join('');
+  listWrap.innerHTML = html;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[c]);
+}
+
+/* 검색 */
+searchBox.addEventListener('input', e=>{
+  searchKeyword = e.target.value.trim();
+  renderList();
+});
+
+/* 학년 필터 */
+document.querySelectorAll('.filter-chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.filter-chip').forEach(c=> c.classList.remove('active'));
+    chip.classList.add('active');
+    currentFilter = chip.dataset.filter;
+    renderList();
+  });
+});
+
+/* 새로고침 */
+refreshBtn.addEventListener('click', ()=>{
+  fetchRented();
+  showToast('새로고침 중...', 'ok');
+});
+
+/* CSV 다운로드 */
+csvBtn.addEventListener('click', ()=>{
+  if(allRented.length === 0){ showToast('내보낼 데이터가 없습니다', 'err'); return; }
+  const today = new Date();
+  const rows = [['학번','이름','학년','반','번호','대여일','제출시각']];
+  allRented.forEach(r=>{
+    const sid = String(r.studentId);
+    rows.push([sid, r.name, sid[0], parseInt(sid.slice(1,3)), parseInt(sid.slice(3,5)), r.date, r.timestamp]);
+  });
+  const csv = rows.map(row => row.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  // BOM 추가하여 한글 깨짐 방지
+  const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = today.toISOString().slice(0,10);
+  a.href = url; a.download = `디벗_대여중_${stamp}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`${allRented.length}건 다운로드 완료`, 'ok');
+});
+
+/* Toast */
+function showToast(msg, type='ok'){
+  toast.textContent = msg;
+  toast.className = 'toast show ' + type;
+  setTimeout(()=> toast.classList.remove('show'), 2400);
+}
+</script>
+</body>
+</html>
