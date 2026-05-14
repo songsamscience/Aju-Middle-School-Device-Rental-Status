@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>교사용 조회 | 디벗 대여 현황 · 송쌤과학</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,7 +25,7 @@
     --shadow:0 20px 60px -20px rgba(15,23,42,.35), 0 8px 20px -10px rgba(15,23,42,.18);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;font-family:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:var(--ink);}
+  html,body{margin:0;padding:0;font-family:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:var(--ink);max-width:100%;overflow-x:hidden;}
   body{
     min-height:100dvh;
     background:
@@ -33,9 +33,16 @@
       radial-gradient(900px 500px at 110% 10%, rgba(245,158,11,.20), transparent 60%),
       linear-gradient(180deg, var(--bg-1), var(--bg-2));
     padding:24px 16px 60px;
+    padding-top:max(24px, env(safe-area-inset-top));
+    padding-bottom:max(60px, env(safe-area-inset-bottom));
     display:flex;justify-content:center;align-items:flex-start;
   }
-  .wrap{width:100%;max-width:720px;display:flex;flex-direction:column;gap:18px;}
+  .wrap{
+    width:100%;max-width:720px;min-width:0;
+    display:flex;flex-direction:column;gap:18px;
+    padding-left:env(safe-area-inset-left);
+    padding-right:env(safe-area-inset-right);
+  }
   /* HEADER */
   header.brand{color:#fff;text-align:center;padding:8px 0 4px;}
   .school-tag{
@@ -47,7 +54,12 @@
   h1 .accent{background:linear-gradient(90deg,#c4b5fd,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent;}
   .subtitle{color:#bdb5d9;font-size:13px;margin:0;}
   /* CARD */
-  .card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:24px 22px;border:1px solid rgba(255,255,255,.6);}
+  .card{
+    background:var(--card);border-radius:18px;box-shadow:var(--shadow);
+    padding:24px 22px;border:1px solid rgba(255,255,255,.6);
+    width:100%;max-width:100%;min-width:0;
+    overflow:hidden;
+  }
   /* LOCK SCREEN */
   .lock-screen{text-align:center;padding:20px 0 10px;}
   .lock-ico{
@@ -66,6 +78,8 @@
     background:#f7f9fc;border:2px solid var(--line);border-radius:14px;
     color:var(--ink);outline:none;display:block;
     transition:all .2s ease;
+    -webkit-appearance:none;appearance:none;
+    box-sizing:border-box;
   }
   .pw-input:focus{border-color:var(--teacher);background:#fff;box-shadow:0 0 0 4px rgba(124,58,237,.12);}
   .pw-input.shake{animation:shake .5s ease;border-color:var(--warn);}
@@ -110,10 +124,12 @@
     display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;
   }
   .search-box{
-    flex:1;min-width:160px;
+    flex:1;min-width:0;
     padding:11px 14px;font-size:14px;font-family:inherit;
     background:#f7f9fc;border:1.5px solid var(--line);border-radius:10px;
     outline:none;transition:border-color .15s;
+    -webkit-appearance:none;appearance:none;
+    box-sizing:border-box;
   }
   .search-box:focus{border-color:var(--teacher);background:#fff;}
   .filter-chip{
@@ -134,6 +150,7 @@
     display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px;
   }
   .mini-select{
+    width:100%;min-width:0;box-sizing:border-box;
     padding:11px 14px;font-size:14px;font-family:inherit;font-weight:600;
     background:#f7f9fc;border:1.5px solid var(--line);border-radius:10px;
     color:var(--ink);outline:none;cursor:pointer;
@@ -172,6 +189,8 @@
   .list-wrap{
     max-height:480px;overflow-y:auto;border-radius:12px;
     border:1px solid var(--line);background:#fafbff;
+    max-width:100%;box-sizing:border-box;
+    -webkit-overflow-scrolling:touch;
   }
   .row{
     display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;
@@ -188,11 +207,12 @@
     padding:6px 10px;border-radius:8px;min-width:60px;text-align:center;
   }
   .row.over .row-id{background:#fee2e2;color:#b91c1c;}
-  .row-info{display:flex;flex-direction:column;gap:2px;min-width:0;}
-  .row-name{font-weight:700;font-size:15px;color:var(--ink);}
+  .row-info{display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden;}
+  .row-name{font-weight:700;font-size:15px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .row-class{font-size:12px;color:var(--ink-soft);}
   .row-date{
     font-size:12px;color:var(--ink-soft);text-align:right;font-family:'JetBrains Mono',monospace;
+    white-space:nowrap;flex-shrink:0;
   }
   .row-date b{display:block;color:var(--ink);font-family:inherit;}
   .row .badge{
@@ -229,12 +249,44 @@
   footer{text-align:center;color:#8294b8;font-size:12px;padding:6px 0 0;}
   footer .copy{margin-top:4px;opacity:.7;font-family:'JetBrains Mono',monospace;font-size:11px;}
   footer a{color:#bdb5d9;text-decoration:none;}
+  /* 태블릿 / 좁은 화면 */
   @media (max-width:520px){
+    body{padding:18px 12px 50px;}
+    .card{padding:20px 16px;}
     h1{font-size:26px;}
-    .summary{grid-template-columns:1fr 1fr;}
+    .summary{grid-template-columns:1fr 1fr;gap:8px;}
     .summary .stat:first-child{grid-column:span 2;}
+    .stat{padding:12px 8px;}
+    .stat .num{font-size:28px;}
+    .stat .lbl{font-size:10px;}
+    /* 학년·반·초기화 한 줄로 유지 */
+    .select-row{grid-template-columns:1fr 1fr auto;gap:6px;}
+    .mini-select{font-size:13px;padding:10px 30px 10px 10px;background-position:right 8px center;}
+    .clear-btn{padding:0 10px;font-size:12px;}
+    /* 검색·버튼 줄바꿈 자연스럽게 */
+    .toolbar{gap:6px;}
+    .search-box{flex:1 1 100%;min-width:0;}
+    .icon-btn{flex:1;justify-content:center;padding:9px 8px;font-size:12px;}
+    /* 목록 row 컴팩트하게 */
+    .row{padding:12px 12px;gap:10px;}
+    .row-id{font-size:13px;padding:5px 8px;min-width:54px;}
+    .row-name{font-size:14px;}
+    .row-class{font-size:11px;}
     .row-date{font-size:11px;}
     .row-date b{font-size:12px;}
+    .top-bar h2{font-size:18px;}
+    .logout-btn{padding:7px 12px;font-size:11px;}
+    .filter-info{font-size:12px;padding:8px 12px;}
+  }
+  /* 아이폰 SE/미니 등 */
+  @media (max-width:380px){
+    body{padding:14px 10px 40px;}
+    .card{padding:18px 14px;}
+    h1{font-size:24px;}
+    .mini-select{font-size:12px;padding:10px 28px 10px 8px;}
+    .clear-btn{padding:0 8px;font-size:11px;}
+    .row-id{font-size:12px;padding:4px 6px;min-width:50px;}
+    .row{padding:10px;gap:8px;}
   }
 </style>
 </head>
