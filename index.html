@@ -129,6 +129,45 @@
     display:inline-flex;align-items:center;gap:5px;
   }
   .icon-btn:hover{border-color:var(--teacher);color:var(--teacher);}
+  /* 학년·반 셀렉터 */
+  .select-row{
+    display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px;
+  }
+  .mini-select{
+    padding:11px 14px;font-size:14px;font-family:inherit;font-weight:600;
+    background:#f7f9fc;border:1.5px solid var(--line);border-radius:10px;
+    color:var(--ink);outline:none;cursor:pointer;
+    appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23566388' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;
+    transition:border-color .15s;
+  }
+  .mini-select:focus{border-color:var(--teacher);background-color:#fff;}
+  .mini-select.has-value{
+    background-color:var(--teacher-soft);
+    border-color:var(--teacher);
+    color:var(--teacher-deep);
+  }
+  .clear-btn{
+    padding:0 14px;font-size:13px;font-weight:600;font-family:inherit;
+    background:#fff;border:1.5px solid var(--line);border-radius:10px;
+    color:var(--ink-soft);cursor:pointer;white-space:nowrap;
+    transition:all .15s;
+  }
+  .clear-btn:hover{border-color:var(--warn);color:var(--warn);}
+  /* 활성 필터 표시 */
+  .filter-info{
+    display:none;padding:10px 14px;margin-bottom:12px;
+    background:linear-gradient(135deg,var(--teacher-soft),#ddd6fe);
+    border:1.5px solid #c4b5fd;border-radius:10px;
+    font-size:13px;color:var(--teacher-deep);font-weight:600;
+    align-items:center;justify-content:space-between;gap:10px;
+  }
+  .filter-info.show{display:flex;}
+  .filter-info .count{
+    background:var(--teacher);color:#fff;padding:3px 10px;
+    border-radius:999px;font-size:12px;
+  }
   /* LIST */
   .list-wrap{
     max-height:480px;overflow-y:auto;border-radius:12px;
@@ -243,14 +282,28 @@
       </div>
     </div>
 
+    <div class="select-row">
+      <select class="mini-select" id="filterGrade">
+        <option value="">학년 전체</option>
+        <option value="1">1학년</option>
+        <option value="2">2학년</option>
+        <option value="3">3학년</option>
+      </select>
+      <select class="mini-select" id="filterClass">
+        <option value="">반 전체</option>
+      </select>
+      <button type="button" class="clear-btn" id="clearFilterBtn">초기화</button>
+    </div>
+
     <div class="toolbar">
       <input type="text" class="search-box" id="searchBox" placeholder="🔍 이름·학번 검색">
-      <button type="button" class="filter-chip active" data-filter="all">전체</button>
-      <button type="button" class="filter-chip" data-filter="1">1학년</button>
-      <button type="button" class="filter-chip" data-filter="2">2학년</button>
-      <button type="button" class="filter-chip" data-filter="3">3학년</button>
       <button type="button" class="icon-btn" id="refreshBtn">🔄 새로고침</button>
-      <button type="button" class="icon-btn" id="csvBtn">⬇ CSV</button>
+      <button type="button" class="icon-btn" id="csvBtn">⬇ CSV 다운로드</button>
+    </div>
+
+    <div class="filter-info" id="filterInfo">
+      <span id="filterInfoText"></span>
+      <span class="count" id="filterInfoCount"></span>
     </div>
 
     <div class="list-wrap" id="listWrap">
@@ -292,9 +345,25 @@ const refreshBtn = $('#refreshBtn');
 const csvBtn = $('#csvBtn');
 const toast = $('#toast');
 
-let allRented = [];        // 전체 대여 중 학생
-let currentFilter = 'all'; // 학년 필터
+let allRented = [];          // 전체 대여 중 학생
+let filterGrade = '';        // 학년 필터 ('' = 전체)
+let filterClass = '';        // 반 필터 ('' = 전체)
 let searchKeyword = '';
+
+const filterGradeEl = $('#filterGrade');
+const filterClassEl = $('#filterClass');
+const clearFilterBtn = $('#clearFilterBtn');
+const filterInfo = $('#filterInfo');
+const filterInfoText = $('#filterInfoText');
+const filterInfoCount = $('#filterInfoCount');
+
+/* 반 옵션 자동 채우기 (1~10반) */
+for(let i=1;i<=10;i++){
+  const o = document.createElement('option');
+  o.value = String(i).padStart(2,'0');
+  o.textContent = i + '반';
+  filterClassEl.appendChild(o);
+}
 
 /* 비밀번호만 입력 가능하게 (숫자 4자리) */
 pwInput.addEventListener('input', e=>{
@@ -336,6 +405,12 @@ logoutBtn.addEventListener('click', ()=>{
   pwInput.value = '';
   pwInput.focus();
   allRented = [];
+  filterGrade = '';
+  filterClass = '';
+  searchKeyword = '';
+  filterGradeEl.value = '';
+  filterClassEl.value = '';
+  searchBox.value = '';
 });
 
 /* 세션 체크: 30분 이내 인증된 적 있으면 자동 잠금 해제 */
@@ -396,14 +471,18 @@ function renderSummary(){
   }
 }
 
-/* 학생 목록 렌더링 */
-function renderList(){
+/* 현재 필터에 부합하는 데이터 반환 (목록 + CSV 공용) */
+function getFilteredData(){
   let filtered = allRented;
   // 학년 필터
-  if(currentFilter !== 'all'){
-    filtered = filtered.filter(r => String(r.studentId).startsWith(currentFilter));
+  if(filterGrade){
+    filtered = filtered.filter(r => String(r.studentId).startsWith(filterGrade));
   }
-  // 검색 필터
+  // 반 필터
+  if(filterClass){
+    filtered = filtered.filter(r => String(r.studentId).slice(1,3) === filterClass);
+  }
+  // 이름/학번 검색
   if(searchKeyword){
     const kw = searchKeyword.toLowerCase();
     filtered = filtered.filter(r => 
@@ -411,12 +490,51 @@ function renderList(){
       String(r.studentId).includes(kw)
     );
   }
+  return filtered;
+}
+
+/* 활성 필터 정보 표시 갱신 */
+function updateFilterInfo(filteredCount){
+  const parts = [];
+  if(filterGrade) parts.push(`${filterGrade}학년`);
+  if(filterClass) parts.push(`${parseInt(filterClass)}반`);
+  if(searchKeyword) parts.push(`"${searchKeyword}"`);
+  
+  if(parts.length === 0){
+    filterInfo.classList.remove('show');
+    return;
+  }
+  filterInfo.classList.add('show');
+  filterInfoText.textContent = `필터: ${parts.join(' · ')}`;
+  filterInfoCount.textContent = `${filteredCount}명`;
+}
+
+/* 드롭다운 시각 강조 (값이 선택되면 색 변경) */
+function updateSelectStyles(){
+  filterGradeEl.classList.toggle('has-value', !!filterGrade);
+  filterClassEl.classList.toggle('has-value', !!filterClass);
+}
+
+/* 학생 목록 렌더링 */
+function renderList(){
+  const filtered = getFilteredData();
+  updateFilterInfo(filtered.length);
+  updateSelectStyles();
+  
   if(filtered.length === 0){
-    listWrap.innerHTML = `<div class="empty">
-      <div class="big">🎉</div>
-      <div class="title">현재 대여 중인 학생이 없습니다</div>
-      <div>모두 정상 반납되었어요</div>
-    </div>`;
+    if(allRented.length === 0){
+      listWrap.innerHTML = `<div class="empty">
+        <div class="big">🎉</div>
+        <div class="title">현재 대여 중인 학생이 없습니다</div>
+        <div>모두 정상 반납되었어요</div>
+      </div>`;
+    } else {
+      listWrap.innerHTML = `<div class="empty">
+        <div class="big">🔍</div>
+        <div class="title">조건에 맞는 학생이 없습니다</div>
+        <div>필터를 변경하거나 초기화해 보세요</div>
+      </div>`;
+    }
     return;
   }
   // 3일 이상 경과한 항목 강조
@@ -429,7 +547,6 @@ function renderList(){
     const daysDiff = Math.floor((today - d) / (1000*60*60*24));
     const overdueClass = d < threeDaysAgo ? ' over' : '';
     const overdueBadge = daysDiff >= 3 ? `<span class="badge">${daysDiff}일 경과</span>` : '';
-    // 학번 파싱: 5자리 → 학년/반/번호
     const sid = String(r.studentId);
     const grade = sid[0];
     const cls = parseInt(sid.slice(1,3));
@@ -461,14 +578,26 @@ searchBox.addEventListener('input', e=>{
   renderList();
 });
 
-/* 학년 필터 */
-document.querySelectorAll('.filter-chip').forEach(chip=>{
-  chip.addEventListener('click', ()=>{
-    document.querySelectorAll('.filter-chip').forEach(c=> c.classList.remove('active'));
-    chip.classList.add('active');
-    currentFilter = chip.dataset.filter;
-    renderList();
-  });
+/* 학년 / 반 필터 */
+filterGradeEl.addEventListener('change', e=>{
+  filterGrade = e.target.value;
+  renderList();
+});
+filterClassEl.addEventListener('change', e=>{
+  filterClass = e.target.value;
+  renderList();
+});
+
+/* 필터 초기화 */
+clearFilterBtn.addEventListener('click', ()=>{
+  filterGrade = '';
+  filterClass = '';
+  searchKeyword = '';
+  filterGradeEl.value = '';
+  filterClassEl.value = '';
+  searchBox.value = '';
+  renderList();
+  showToast('필터를 초기화했습니다', 'ok');
 });
 
 /* 새로고침 */
@@ -477,14 +606,24 @@ refreshBtn.addEventListener('click', ()=>{
   showToast('새로고침 중...', 'ok');
 });
 
-/* CSV 다운로드 */
+/* CSV 다운로드 — 현재 필터된 결과만 */
 csvBtn.addEventListener('click', ()=>{
-  if(allRented.length === 0){ showToast('내보낼 데이터가 없습니다', 'err'); return; }
+  const data = getFilteredData();
+  if(data.length === 0){
+    showToast('내보낼 데이터가 없습니다', 'err');
+    return;
+  }
   const today = new Date();
   const rows = [['학번','이름','학년','반','번호','대여일','제출시각']];
-  allRented.forEach(r=>{
+  data.forEach(r=>{
     const sid = String(r.studentId);
-    rows.push([sid, r.name, sid[0], parseInt(sid.slice(1,3)), parseInt(sid.slice(3,5)), r.date, r.timestamp]);
+    rows.push([
+      sid, r.name,
+      sid[0],
+      parseInt(sid.slice(1,3)),
+      parseInt(sid.slice(3,5)),
+      r.date, r.timestamp
+    ]);
   });
   const csv = rows.map(row => row.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   // BOM 추가하여 한글 깨짐 방지
@@ -492,10 +631,19 @@ csvBtn.addEventListener('click', ()=>{
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const stamp = today.toISOString().slice(0,10);
-  a.href = url; a.download = `디벗_대여중_${stamp}.csv`;
+  
+  // 파일명에 필터 조건 반영
+  const tagParts = [];
+  if(filterGrade) tagParts.push(`${filterGrade}학년`);
+  if(filterClass) tagParts.push(`${parseInt(filterClass)}반`);
+  if(searchKeyword) tagParts.push(`검색-${searchKeyword}`);
+  const filterTag = tagParts.length > 0 ? '_' + tagParts.join('_') : '_전체';
+  
+  a.href = url;
+  a.download = `디벗_대여중${filterTag}_${stamp}.csv`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast(`${allRented.length}건 다운로드 완료`, 'ok');
+  showToast(`${data.length}건 다운로드 완료`, 'ok');
 });
 
 /* Toast */
